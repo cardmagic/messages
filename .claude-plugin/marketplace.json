@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "messages",
-      "source": ".",
+      "source": "./",
       "description": "Fuzzy search Apple Messages/iMessage conversations",
       "version": "1.0.0"
     }
