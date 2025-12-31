@@ -1,14 +1,15 @@
 # messages
 
-Fuzzy search through Apple Messages (iMessage/SMS) from the command line, as a Claude Code skill, or as an MCP server.
+Fuzzy search and browse Apple Messages (iMessage/SMS) from the command line, as a Claude Code plugin, or as an MCP server.
 
 ## Features
 
 - **Fuzzy search** with typo tolerance across all your messages
+- **Browse recent** messages, contacts, and conversations
 - **Contact resolution** - shows names instead of phone numbers
 - **Context display** - see messages before/after each match
 - **Filter by sender** or date range
-- **Multiple interfaces** - CLI, MCP server, or Claude Code skill
+- **Multiple interfaces** - CLI, MCP server, or Claude Code plugin
 
 ## Requirements
 
@@ -36,6 +37,27 @@ The tool needs to read your Messages database at `~/Library/Messages/chat.db`:
 
 ### CLI
 
+#### Browse Commands
+
+```bash
+# Show most recent messages (who texted me?)
+messages recent
+
+# List contacts by recent activity
+messages contacts --limit 10
+
+# List conversations with message counts
+messages conversations
+
+# Show recent messages from/to someone
+messages from "Mom"
+
+# Show full conversation thread
+messages thread "John" --after 2024-12-01
+```
+
+#### Search Commands
+
 ```bash
 # Build the search index (required before first search)
 messages index
@@ -56,7 +78,7 @@ messages search "project" --limit 20 --context 5
 messages stats
 ```
 
-#### CLI Options
+#### Search Options
 
 | Option | Description |
 |--------|-------------|
@@ -101,8 +123,10 @@ claude plugin install messages@cardmagic
 ```
 
 This gives you:
-- **Skill**: Claude automatically searches messages when you ask about texts/iMessages
-- **Slash command**: `/messages:search "query"` for direct searching
+- **Skill**: Claude automatically searches/browses messages when you ask about texts/iMessages
+- **Slash commands**:
+  - `/messages:search "query"` - fuzzy search through messages
+  - `/messages:browse recent` - browse recent messages, contacts, conversations
 
 ## How It Works
 
