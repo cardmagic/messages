@@ -5,7 +5,14 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import { getStats, ensureIndex } from './indexer.js'
-import { search, closeConnections } from './searcher.js'
+import {
+  search,
+  closeConnections,
+  getRecentMessages,
+  getContacts,
+  getConversations,
+  getThread,
+} from './searcher.js'
 import type { SearchOptions } from './types.js'
 
 export async function startMcpServer(): Promise<void> {
@@ -28,7 +35,7 @@ export async function startMcpServer(): Promise<void> {
         {
           name: 'search_messages',
           description:
-            'Search through Apple Messages (iMessage/SMS) with fuzzy matching. Can search by text query, filter by sender, or both. Use "from" to get messages from a specific person. The index is automatically rebuilt when new messages are detected.',
+            'Search through Apple Messages (iMessage/SMS) with fuzzy matching. Can search by text query, filter by sender, or both. Use "from" to get messages from a specific person.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -56,6 +63,75 @@ export async function startMcpServer(): Promise<void> {
               },
             },
             required: [],
+          },
+        },
+        {
+          name: 'recent_messages',
+          description:
+            'Get the most recent messages across all conversations. Use this to see "who texted me recently" or get an overview of recent activity.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              limit: {
+                type: 'number',
+                description: 'Maximum number of messages to return (default: 20)',
+                default: 20,
+              },
+            },
+          },
+        },
+        {
+          name: 'list_contacts',
+          description:
+            'List contacts sorted by recent messaging activity. Shows contact name, message count, and last message date.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              limit: {
+                type: 'number',
+                description: 'Maximum number of contacts to return (default: 20)',
+                default: 20,
+              },
+            },
+          },
+        },
+        {
+          name: 'list_conversations',
+          description:
+            'List conversations with message counts and last message preview. Shows all chat threads sorted by recent activity.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              limit: {
+                type: 'number',
+                description: 'Maximum number of conversations to return (default: 20)',
+                default: 20,
+              },
+            },
+          },
+        },
+        {
+          name: 'get_thread',
+          description:
+            'Get the full conversation thread with a specific contact. Shows messages in chronological order.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              contact: {
+                type: 'string',
+                description: 'Contact name to get the conversation thread for',
+              },
+              after: {
+                type: 'string',
+                description: 'Show only messages after this date in YYYY-MM-DD format (optional)',
+              },
+              limit: {
+                type: 'number',
+                description: 'Maximum number of messages to return (default: 50)',
+                default: 50,
+              },
+            },
+            required: ['contact'],
           },
         },
         {
@@ -107,7 +183,6 @@ export async function startMcpServer(): Promise<void> {
             context: searchArgs.context ?? 2,
           }
 
-          // search() auto-rebuilds the index if needed
           const results = search(searchOptions)
           closeConnections()
 
@@ -126,7 +201,6 @@ export async function startMcpServer(): Promise<void> {
             }
           }
 
-          // Format results for output
           const formatted = results.map((r, i) => {
             const lines: string[] = []
             const date = new Date(r.result.message.date * 1000)
@@ -142,18 +216,15 @@ export async function startMcpServer(): Promise<void> {
             lines.push(`Chat: ${r.result.message.chatName}`)
             lines.push('')
 
-            // Context before
             for (const msg of r.before) {
               const msgDate = new Date(msg.date * 1000)
               const sender = msg.isFromMe ? 'Me' : msg.sender
               lines.push(`  [${msgDate.toLocaleTimeString()}] ${sender}: ${msg.text}`)
             }
 
-            // The matched message
             const sender = r.result.message.isFromMe ? 'Me' : r.result.message.sender
             lines.push(`> [${dateStr}] ${sender}: ${r.result.message.text}`)
 
-            // Context after
             for (const msg of r.after) {
               const msgDate = new Date(msg.date * 1000)
               const afterSender = msg.isFromMe ? 'Me' : msg.sender
@@ -173,8 +244,156 @@ export async function startMcpServer(): Promise<void> {
           }
         }
 
+        case 'recent_messages': {
+          const limit = (args as { limit?: number }).limit ?? 20
+          const messages = getRecentMessages(limit)
+          closeConnections()
+
+          if (messages.length === 0) {
+            return {
+              content: [{ type: 'text', text: 'No messages found.' }],
+            }
+          }
+
+          const formatted = messages.map(({ message }) => {
+            const date = new Date(message.date * 1000)
+            const dateStr = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+            const sender = message.isFromMe ? 'Me' : message.sender
+            return `[${dateStr}] [${message.chatName}] ${sender}: ${message.text}`
+          })
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Most recent ${messages.length} messages:\n\n${formatted.join('\n')}`,
+              },
+            ],
+          }
+        }
+
+        case 'list_contacts': {
+          const limit = (args as { limit?: number }).limit ?? 20
+          const contacts = getContacts(limit)
+          closeConnections()
+
+          if (contacts.length === 0) {
+            return {
+              content: [{ type: 'text', text: 'No contacts found.' }],
+            }
+          }
+
+          const formatted = contacts.map((contact) => {
+            const date = new Date(contact.lastMessageDate * 1000)
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            return `${contact.name} (${contact.messageCount} messages) - last: ${dateStr}`
+          })
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Top ${contacts.length} contacts by recent activity:\n\n${formatted.join('\n')}`,
+              },
+            ],
+          }
+        }
+
+        case 'list_conversations': {
+          const limit = (args as { limit?: number }).limit ?? 20
+          const conversations = getConversations(limit)
+          closeConnections()
+
+          if (conversations.length === 0) {
+            return {
+              content: [{ type: 'text', text: 'No conversations found.' }],
+            }
+          }
+
+          const formatted = conversations.map((conv) => {
+            const date = new Date(conv.lastMessageDate * 1000)
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            const preview = conv.lastMessage
+              ? conv.lastMessage.length > 50
+                ? conv.lastMessage.slice(0, 50) + '...'
+                : conv.lastMessage
+              : ''
+            return `${conv.chatName} (${conv.messageCount} msgs) - ${dateStr}\n  └─ ${preview}`
+          })
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Top ${conversations.length} conversations:\n\n${formatted.join('\n')}`,
+              },
+            ],
+          }
+        }
+
+        case 'get_thread': {
+          const threadArgs = args as { contact: string; after?: string; limit?: number }
+
+          if (!threadArgs.contact) {
+            return {
+              content: [{ type: 'text', text: 'Please provide a contact name.' }],
+              isError: true,
+            }
+          }
+
+          const messages = getThread(threadArgs.contact, {
+            after: threadArgs.after ? new Date(threadArgs.after) : undefined,
+            limit: threadArgs.limit ?? 50,
+          })
+          closeConnections()
+
+          if (messages.length === 0) {
+            return {
+              content: [{ type: 'text', text: `No messages found with "${threadArgs.contact}".` }],
+            }
+          }
+
+          const chatName = messages[0].chatName
+          let lastDate = ''
+          const formatted: string[] = []
+
+          for (const message of messages) {
+            const date = new Date(message.date * 1000)
+            const dateStr = date.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })
+            const timeStr = date.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+
+            if (dateStr !== lastDate) {
+              formatted.push(`\n--- ${dateStr} ---\n`)
+              lastDate = dateStr
+            }
+
+            const sender = message.isFromMe ? 'Me' : message.sender
+            formatted.push(`[${timeStr}] ${sender}: ${message.text}`)
+          }
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Conversation with ${chatName}:\n${formatted.join('\n')}`,
+              },
+            ],
+          }
+        }
+
         case 'get_message_stats': {
-          // Ensure index is up to date
           ensureIndex()
 
           const stats = getStats()

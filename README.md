@@ -26,7 +26,7 @@ Install as a plugin to get skills (auto-invoked) and slash commands:
 
 ```bash
 # Add the marketplace
-claude plugin marketplace add https://github.com/cardmagic/messages
+claude plugin marketplace add cardmagic/messages
 
 # Install the plugin
 claude plugin install messages@cardmagic
@@ -59,7 +59,7 @@ cd messages
 make install
 
 # Then add as plugin OR MCP server:
-claude plugin marketplace add /Users/you/messages/.claude-plugin/marketplace.json
+claude plugin marketplace add cardmagic/messages
 claude plugin install messages@cardmagic
 # OR
 claude mcp add --transport stdio messages -- messages --mcp
@@ -154,7 +154,11 @@ When installed as an MCP server, Claude Code can use these tools:
 
 | Tool | Description |
 |------|-------------|
-| `search_messages` | Search messages with fuzzy matching (auto-rebuilds index) |
+| `search_messages` | Search messages with fuzzy matching |
+| `recent_messages` | Get most recent messages |
+| `list_contacts` | List contacts by activity |
+| `list_conversations` | List conversations with counts |
+| `get_thread` | Get conversation thread with a contact |
 | `get_message_stats` | Get index statistics |
 
 #### Manual MCP Configuration
