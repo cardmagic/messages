@@ -19,10 +19,17 @@ Fuzzy search and browse Apple Messages (iMessage/SMS) from the command line, as 
 
 ## Installation
 
-### From npm (recommended)
+### As a Claude Code MCP Server (recommended)
+
+```bash
+claude mcp add --transport stdio messages -- npx -y @cardmagic/messages --mcp
+```
+
+Or install globally first:
 
 ```bash
 npm install -g @cardmagic/messages
+claude mcp add --transport stdio messages -- messages --mcp
 ```
 
 ### From source
@@ -31,6 +38,7 @@ npm install -g @cardmagic/messages
 git clone https://github.com/cardmagic/messages.git
 cd messages
 make install
+claude mcp add --transport stdio messages -- messages --mcp
 ```
 
 ## Granting Full Disk Access
@@ -97,20 +105,7 @@ messages stats
 
 ### MCP Server
 
-Add to your Claude Code MCP configuration (`~/.claude/claude_desktop_config.json` or VS Code settings):
-
-```json
-{
-  "mcpServers": {
-    "messages": {
-      "command": "messages",
-      "args": ["--mcp"]
-    }
-  }
-}
-```
-
-#### Available MCP Tools
+Once installed with `claude mcp add` (see Installation above), Claude Code can use these tools:
 
 | Tool | Description |
 |------|-------------|
@@ -118,23 +113,20 @@ Add to your Claude Code MCP configuration (`~/.claude/claude_desktop_config.json
 | `rebuild_message_index` | Rebuild the search index |
 | `get_message_stats` | Get index statistics |
 
-### Claude Code Plugin
+#### Manual Configuration
 
-Install as a Claude Code plugin:
+For Claude Desktop or VS Code, add to your MCP configuration:
 
-```bash
-# Add the marketplace
-claude plugin marketplace add cardmagic/messages
-
-# Install the plugin
-claude plugin install messages@cardmagic
+```json
+{
+  "mcpServers": {
+    "messages": {
+      "command": "npx",
+      "args": ["-y", "@cardmagic/messages", "--mcp"]
+    }
+  }
+}
 ```
-
-This gives you:
-- **Skill**: Claude automatically searches/browses messages when you ask about texts/iMessages
-- **Slash commands**:
-  - `/messages:search "query"` - fuzzy search through messages
-  - `/messages:browse recent` - browse recent messages, contacts, conversations
 
 ## How It Works
 
