@@ -97,7 +97,7 @@ Install as a Claude Code plugin:
 claude plugin marketplace add cardmagic/messages
 
 # Install the plugin
-claude plugin install messages@cardmagic-messages
+claude plugin install messages@cardmagic
 ```
 
 This gives you:

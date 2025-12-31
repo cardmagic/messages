@@ -1,8 +1,8 @@
 {
-  "name": "cardmagic-messages",
+  "name": "cardmagic",
   "owner": {
     "name": "Lucas Carlson",
-    "email": "lucas@rufy.com"
+    "email": "lucas@carlson.net"
   },
   "plugins": [
     {
