@@ -34,7 +34,7 @@ claude plugin install messages@cardmagic
 
 This gives you:
 - **Skill**: Claude automatically searches messages when you ask about texts/iMessages
-- **Slash commands**: `/messages:search` and `/messages:browse`
+- **Slash commands**: `/messages:search`, `/messages:recent`, `/messages:from`, and more
 
 ### MCP Server
 
@@ -141,9 +141,12 @@ When installed as a plugin, you get:
 | Command | Description |
 |---------|-------------|
 | `/messages:search <query>` | Fuzzy search with optional filters |
-| `/messages:browse recent` | Show most recent messages |
-| `/messages:browse contacts` | List contacts by activity |
-| `/messages:browse from "Name"` | Messages from/to someone |
+| `/messages:recent` | Show most recent messages |
+| `/messages:contacts` | List contacts by activity |
+| `/messages:conversations` | List conversations with message counts |
+| `/messages:from "Name"` | Messages from a specific person |
+| `/messages:thread "Name"` | Full conversation thread |
+| `/messages:browse <cmd>` | Alias for browse commands |
 
 ### MCP Server
 

@@ -1,20 +1,25 @@
 ---
-description: Browse recent messages and conversations
+description: Browse recent messages and conversations (alias for other commands)
 allowed-tools: Bash(messages:*)
 argument-hint: [recent|contacts|conversations|from "name"|thread "name"]
 ---
 
 # Browse Messages
 
-Browse recent messages and conversations without searching.
+Browse recent messages and conversations. This is an alias - you can also use the individual commands directly:
+
+- `/messages:recent` - Show most recent messages
+- `/messages:contacts` - List contacts by activity
+- `/messages:conversations` - List conversations
+- `/messages:from "Name"` - Messages from someone
+- `/messages:thread "Name"` - Full conversation thread
 
 ## Instructions
 
 1. **Check if messages CLI is installed** - if `which messages` fails, install it:
 
 ```bash
-git clone https://github.com/cardmagic/messages.git
-cd messages && make install
+npm install -g @cardmagic/messages
 ```
 
 2. Parse the arguments and run the appropriate command:
@@ -22,16 +27,6 @@ cd messages && make install
 ```bash
 messages $ARGUMENTS
 ```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `recent` | Show most recent messages (who texted me?) |
-| `contacts` | List contacts by recent activity |
-| `conversations` | List conversations with message counts |
-| `from "Name"` | Show recent messages from/to someone |
-| `thread "Name"` | Show full conversation thread |
 
 ## Examples
 

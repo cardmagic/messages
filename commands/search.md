@@ -13,14 +13,13 @@ Fuzzy search through Apple Messages to find conversations and messages.
 1. **Check if messages CLI is installed** - if `which messages` fails, install it:
 
 ```bash
-git clone https://github.com/cardmagic/messages.git
-cd messages && make install
+npm install -g @cardmagic/messages
 ```
 
-2. **Always rebuild the index first** to ensure you have the latest messages:
+2. **Run the search** (index auto-rebuilds when new messages are detected):
 
 ```bash
-messages index-and-search "$ARGUMENTS"
+messages search "$ARGUMENTS"
 ```
 
 3. If the user provides filters, apply them:
@@ -42,10 +41,10 @@ messages index-and-search "$ARGUMENTS"
 ## Examples
 
 User: `/messages:search dinner`
--> `messages index-and-search "dinner"`
+-> `messages search "dinner"`
 
 User: `/messages:search trip --from Mom`
--> `messages index-and-search "trip" --from "Mom"`
+-> `messages search "trip" --from "Mom"`
 
-User: `/messages:search --from John --after 2024-12-01`
--> `messages index-and-search "" --from "John" --after 2024-12-01`
+User: `/messages:search meeting --after 2024-12-01`
+-> `messages search "meeting" --after 2024-12-01`
