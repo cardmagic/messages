@@ -88,65 +88,17 @@ Add to your Claude Code MCP configuration (`~/.claude/claude_desktop_config.json
 | `rebuild_message_index` | Rebuild the search index |
 | `get_message_stats` | Get index statistics |
 
-### Claude Code Skill
+### Claude Code Plugin
 
-Create a skill file at `~/.claude/skills/messages-search.md`:
+Install as a Claude Code plugin:
 
-```markdown
-# Messages Search
-
-Search through Apple Messages to find conversations.
-
-## Instructions
-
-Use the messages CLI to search through the user's iMessage/SMS history.
-
-### Searching
-
-\`\`\`bash
-messages search "query" --limit 10 --context 2
-\`\`\`
-
-Options:
-- `--from "Name"` - filter by sender
-- `--after YYYY-MM-DD` - filter by date
-- `--limit N` - max results
-- `--context N` - surrounding messages
-
-### Rebuilding Index
-
-If results seem stale, rebuild the index:
-
-\`\`\`bash
-messages index
-\`\`\`
-
-### Examples
-
-\`\`\`bash
-# Find messages about dinner plans
-messages search "dinner" --from "Mom" --limit 5
-
-# Find recent work messages
-messages search "meeting" --after 2024-06-01
-
-# Get stats
-messages stats
-\`\`\`
+```bash
+claude plugin install github:cardmagic/messages
 ```
 
-Then reference it in your `CLAUDE.md`:
-
-```markdown
-## Messages Search
-
-Use the `messages-search` skill when user asks about:
-- Finding or searching text messages
-- Looking up conversations
-- What someone said in iMessage
-
-**Proactive triggers:** "find text", "search messages", "what did X say"
-```
+This gives you:
+- **Skill**: Claude automatically searches messages when you ask about texts/iMessages
+- **Slash command**: `/messages:search "query"` for direct searching
 
 ## How It Works
 

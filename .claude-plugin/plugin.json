@@ -1,0 +1,13 @@
+{
+  "name": "messages",
+  "description": "Fuzzy search Apple Messages/iMessage conversations",
+  "version": "1.0.0",
+  "author": {
+    "name": "Lucas Carlson",
+    "url": "https://github.com/cardmagic"
+  },
+  "repository": "https://github.com/cardmagic/messages",
+  "license": "MIT",
+  "keywords": ["macos", "imessage", "messages", "search", "apple"],
+  "platforms": ["darwin"]
+}
