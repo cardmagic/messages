@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.cardmagic/messages",
+  "description": "Fuzzy search and browse Apple Messages/iMessage from CLI or MCP server",
+  "repository": {
+    "url": "https://github.com/cardmagic/messages",
+    "source": "github"
+  },
+  "version": "1.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@cardmagic/messages",
+      "version": "1.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
