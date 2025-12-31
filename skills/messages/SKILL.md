@@ -1,6 +1,6 @@
 ---
 name: messages
-description: Fuzzy search through Apple Messages/iMessage. Use when user asks to find texts, search messages, look up conversations, or find what someone said.
+description: Fuzzy search and browse Apple Messages/iMessage. Use when user asks to find texts, search messages, look up conversations, find what someone said, who texted recently, or view recent messages.
 ---
 
 # messages
@@ -28,43 +28,50 @@ Use this skill when user asks about:
 - Looking up conversations or chats
 - Finding what someone said in iMessage
 - Searching message history
+- Who texted recently, recent messages, contacts
 
-**Proactive triggers:** "find text", "search messages", "what did X say", "message from", "text about", "iMessage", "look up conversation"
+**Proactive triggers:** "find text", "search messages", "what did X say", "message from", "text about", "iMessage", "look up conversation", "who texted", "recent messages", "recent texts"
 
-## Workflow
+## Browse Commands
 
-**IMPORTANT:** Always rebuild the index first to ensure you have the latest messages.
-
-### Step 1: Rebuild Index and Search
-
-Use the `index-and-search` command which rebuilds the index then searches:
+For browsing recent messages and conversations (no search query needed):
 
 ```bash
-messages index-and-search "search query"
+# Show most recent messages (answers "who texted me?")
+messages recent
+
+# List contacts by recent activity
+messages contacts --limit 10
+
+# List conversations with message counts
+messages conversations
+
+# Show recent messages from/to a specific person
+messages from "John"
+
+# Show full conversation thread with someone
+messages thread "John" --after 2024-12-01
 ```
 
-### Step 2: Refine if Needed
+## Search Commands
 
-If initial results aren't helpful, use search options:
+For fuzzy searching through message content:
 
 ```bash
-# Filter by sender
+# Rebuild index and search (recommended)
+messages index-and-search "search query"
+
+# Search with filters
 messages search "query" --from "John"
-
-# Filter by date
 messages search "query" --after 2024-06-01
-
-# More results
 messages search "query" --limit 25
-
-# More context around matches
 messages search "query" --context 5
 
 # Combine options
 messages search "dinner" --from "Mom" --after 2024-01-01 --limit 15
 ```
 
-### Other Commands
+## Other Commands
 
 ```bash
 # Check index stats (message count, date range, etc.)
@@ -74,7 +81,7 @@ messages stats
 messages index
 ```
 
-## Search Options Reference
+## Options Reference
 
 | Option | Description | Example |
 |--------|-------------|---------|
