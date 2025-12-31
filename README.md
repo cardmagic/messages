@@ -93,7 +93,11 @@ Add to your Claude Code MCP configuration (`~/.claude/claude_desktop_config.json
 Install as a Claude Code plugin:
 
 ```bash
-claude plugin install github:cardmagic/messages
+# Add the marketplace
+claude plugin marketplace add cardmagic/messages
+
+# Install the plugin
+claude plugin install messages@cardmagic-messages
 ```
 
 This gives you:

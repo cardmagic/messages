@@ -1,0 +1,15 @@
+{
+  "name": "cardmagic-messages",
+  "owner": {
+    "name": "Lucas Carlson",
+    "email": "lucas@rufy.com"
+  },
+  "plugins": [
+    {
+      "name": "messages",
+      "source": ".",
+      "description": "Fuzzy search Apple Messages/iMessage conversations",
+      "version": "1.0.0"
+    }
+  ]
+}
