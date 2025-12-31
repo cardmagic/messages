@@ -59,17 +59,12 @@ commands/
 
 ## Releasing
 
-Uses npm trusted publishing (OIDC) - no NPM_TOKEN needed after initial setup.
+When asked to "bump version to X" or "tag vX.Y.Z":
 
-```bash
-# 1. Bump version in package.json
-# 2. Commit the version bump
-git add package.json && git commit -m "v1.0.1"
-
-# 3. Tag and push
-git tag v1.0.1
-git push && git push --tags
-```
+1. Update `package.json` version field to the new version
+2. Commit: `git add package.json && git commit -m "chore: bump version to X.Y.Z"`
+3. Tag: `git tag vX.Y.Z`
+4. Push: `git push && git push origin vX.Y.Z`
 
 GitHub Actions will automatically publish to npm on version tags.
 
