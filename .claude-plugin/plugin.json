@@ -8,6 +8,5 @@
   },
   "repository": "https://github.com/cardmagic/messages",
   "license": "MIT",
-  "keywords": ["macos", "imessage", "messages", "search", "apple"],
-  "platforms": ["darwin"]
+  "keywords": ["macos", "imessage", "messages", "search", "apple"]
 }
