@@ -1,5 +1,5 @@
 {
-  "name": "messages-mcp",
+  "name": "@cardmagic/messages",
   "version": "1.0.0",
   "description": "Fuzzy search and browse Apple Messages/iMessage from CLI or MCP server",
   "license": "MIT",
