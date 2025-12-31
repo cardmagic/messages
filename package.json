@@ -26,7 +26,9 @@
     "LICENSE"
   ],
   "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3"]
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   },
   "bin": {
     "messages": "./dist/index.js"
@@ -53,6 +55,8 @@
   "devDependencies": {
     "@types/better-sqlite3": "7.6.12",
     "@types/node": "^22",
-    "typescript": "^5.7.0"
+    "oxlint": "^1.36.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.16"
   }
 }

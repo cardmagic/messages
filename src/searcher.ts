@@ -30,7 +30,6 @@ function getMiniSearch(): MiniSearch<IndexedMessage> {
       throw new Error('Fuzzy index not found. Run `txts index` first.')
     }
     const raw = readFileSync(fuzzyPath, 'utf-8')
-    const data = JSON.parse(raw)
     cachedMiniSearch = MiniSearch.loadJSON<IndexedMessage>(raw, {
       fields: ['text', 'sender', 'chatName'],
       storeFields: ['id', 'text', 'sender', 'chatName', 'chatId', 'date', 'isFromMe'],

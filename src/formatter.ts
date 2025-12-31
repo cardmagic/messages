@@ -55,7 +55,7 @@ function escapeRegex(str: string): string {
 
 export function formatSearchResult(
   result: SearchResultWithContext,
-  index: number
+  _index: number
 ): string {
   const { result: searchResult, before, after } = result
   const { message, matchedTerms } = searchResult

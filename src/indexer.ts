@@ -196,9 +196,11 @@ function extractTextFallback(blob: Buffer): string | null {
     const blobStr = blob.toString('latin1')
 
     // Look for the pattern with + character that contains the text
+    // oxlint-disable-next-line no-control-regex -- Parsing binary blob data
     const plusPattern = /\x01\+(.{1,2000}?)\x86/s
     const match = blobStr.match(plusPattern)
     if (match && match[1]) {
+      // oxlint-disable-next-line no-control-regex -- Cleaning binary data
       const cleaned = match[1].replace(/[\x00-\x1F\x80-\x9F]/g, '').trim()
       if (cleaned.length > 0) {
         return cleaned
@@ -467,7 +469,7 @@ export function buildIndex(
   // Insert messages in a transaction for performance
   const insertBatch = indexDb.transaction(
     (batch: { indexed: IndexedMessage; raw: FilteredMessage }[]) => {
-      for (const { indexed, raw } of batch) {
+      for (const { indexed, raw: _raw } of batch) {
         insertFts.run(
           indexed.id,
           indexed.text,
