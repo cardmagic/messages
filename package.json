@@ -1,11 +1,30 @@
 {
   "name": "messages-mcp",
   "version": "1.0.0",
+  "description": "Fuzzy search and browse Apple Messages/iMessage from CLI or MCP server",
   "license": "MIT",
   "type": "module",
+  "author": "Lucas Carlson <lucas@carlson.net>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cardmagic/messages.git"
+  },
+  "keywords": [
+    "macos",
+    "imessage",
+    "messages",
+    "search",
+    "mcp",
+    "claude"
+  ],
   "engines": {
     "node": ">=22"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "pnpm": {
     "onlyBuiltDependencies": ["better-sqlite3"]
   },

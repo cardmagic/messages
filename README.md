@@ -19,6 +19,14 @@ Fuzzy search and browse Apple Messages (iMessage/SMS) from the command line, as 
 
 ## Installation
 
+### From npm (recommended)
+
+```bash
+npm install -g messages-mcp
+```
+
+### From source
+
 ```bash
 git clone https://github.com/cardmagic/messages.git
 cd messages
