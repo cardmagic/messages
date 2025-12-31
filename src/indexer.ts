@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import MiniSearch from 'minisearch'
-import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { Unarchiver } from 'node-typedstream'
@@ -253,6 +253,37 @@ export function getFuzzyIndexPath(): string {
 
 export function indexExists(): boolean {
   return existsSync(INDEX_DB_PATH) && existsSync(FUZZY_INDEX_PATH)
+}
+
+// Check if the source chat.db has been modified since the index was built
+export function indexNeedsRebuild(): boolean {
+  if (!indexExists()) {
+    return true
+  }
+
+  if (!existsSync(MESSAGES_DB_PATH)) {
+    return false // No source db, can't rebuild anyway
+  }
+
+  try {
+    const sourceModTime = statSync(MESSAGES_DB_PATH).mtime.getTime()
+    const indexModTime = statSync(INDEX_DB_PATH).mtime.getTime()
+    return sourceModTime > indexModTime
+  } catch {
+    return true // If we can't check, rebuild to be safe
+  }
+}
+
+// Ensure index is up to date, rebuilding if necessary
+// Returns true if rebuild was performed
+export function ensureIndex(
+  onProgress?: (progress: IndexProgress) => void
+): boolean {
+  if (!indexNeedsRebuild()) {
+    return false
+  }
+  buildIndex(onProgress)
+  return true
 }
 
 export function getStats(): IndexStats | null {

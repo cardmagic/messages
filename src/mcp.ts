@@ -4,7 +4,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
-import { buildIndex, indexExists, getStats } from './indexer.js'
+import { getStats, ensureIndex } from './indexer.js'
 import { search, closeConnections } from './searcher.js'
 import type { SearchOptions } from './types.js'
 
@@ -28,17 +28,17 @@ export async function startMcpServer(): Promise<void> {
         {
           name: 'search_messages',
           description:
-            'Search through Apple Messages (iMessage/SMS) with fuzzy matching. Returns matching messages with surrounding context.',
+            'Search through Apple Messages (iMessage/SMS) with fuzzy matching. Can search by text query, filter by sender, or both. Use "from" to get messages from a specific person. The index is automatically rebuilt when new messages are detected.',
           inputSchema: {
             type: 'object',
             properties: {
               query: {
                 type: 'string',
-                description: 'Search query - supports fuzzy matching and typos',
+                description: 'Search query for message content - supports fuzzy matching and typos. Optional if "from" is provided.',
               },
               from: {
                 type: 'string',
-                description: 'Filter by sender name or phone number (optional)',
+                description: 'Filter by sender name (e.g., "Mom", "John Smith") or phone number. When used alone (without query), returns recent messages from this sender.',
               },
               after: {
                 type: 'string',
@@ -55,16 +55,7 @@ export async function startMcpServer(): Promise<void> {
                 default: 2,
               },
             },
-            required: ['query'],
-          },
-        },
-        {
-          name: 'rebuild_message_index',
-          description:
-            'Rebuild the search index from Apple Messages database. Required before first search and to include new messages. Requires Full Disk Access for the terminal.',
-          inputSchema: {
-            type: 'object',
-            properties: {},
+            required: [],
           },
         },
         {
@@ -87,24 +78,25 @@ export async function startMcpServer(): Promise<void> {
     try {
       switch (name) {
         case 'search_messages': {
-          if (!indexExists()) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'Index not found. Run rebuild_message_index first to build the search index.',
-                },
-              ],
-              isError: true,
-            }
-          }
-
           const searchArgs = args as {
-            query: string
+            query?: string
             from?: string
             after?: string
             limit?: number
             context?: number
+          }
+
+          // Validate that at least query or from is provided
+          if (!searchArgs.query && !searchArgs.from) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'Please provide either a "query" to search message content, or "from" to filter by sender, or both.',
+                },
+              ],
+              isError: true,
+            }
           }
 
           const searchOptions: SearchOptions = {
@@ -115,15 +107,20 @@ export async function startMcpServer(): Promise<void> {
             context: searchArgs.context ?? 2,
           }
 
+          // search() auto-rebuilds the index if needed
           const results = search(searchOptions)
           closeConnections()
 
           if (results.length === 0) {
+            const searchDesc = searchArgs.from
+              ? `from "${searchArgs.from}"${searchArgs.query ? ` matching "${searchArgs.query}"` : ''}`
+              : `matching "${searchArgs.query}"`
+
             return {
               content: [
                 {
                   type: 'text',
-                  text: `No messages found matching "${searchArgs.query}"`,
+                  text: `No messages found ${searchDesc}.`,
                 },
               ],
             }
@@ -176,26 +173,17 @@ export async function startMcpServer(): Promise<void> {
           }
         }
 
-        case 'rebuild_message_index': {
-          const stats = buildIndex()
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Index rebuilt successfully!\n\nMessages: ${stats.totalMessages.toLocaleString()}\nChats: ${stats.totalChats.toLocaleString()}\nContacts: ${stats.totalContacts.toLocaleString()}\nDate range: ${stats.oldestMessage.toLocaleDateString()} - ${stats.newestMessage.toLocaleDateString()}`,
-              },
-            ],
-          }
-        }
-
         case 'get_message_stats': {
+          // Ensure index is up to date
+          ensureIndex()
+
           const stats = getStats()
           if (!stats) {
             return {
               content: [
                 {
                   type: 'text',
-                  text: 'Index not found. Run rebuild_message_index first.',
+                  text: 'Unable to read message statistics. The Messages database may not be accessible.',
                 },
               ],
               isError: true,

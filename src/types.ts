@@ -47,7 +47,7 @@ export interface SearchResultWithContext {
 
 // Search options for the CLI
 export interface SearchOptions {
-  query: string
+  query?: string // optional when filtering by sender
   from?: string // filter by sender
   after?: Date // filter by date
   limit: number

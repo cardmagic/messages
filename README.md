@@ -9,6 +9,7 @@ Fuzzy search and browse Apple Messages (iMessage/SMS) from the command line, as 
 - **Contact resolution** - shows names instead of phone numbers
 - **Context display** - see messages before/after each match
 - **Filter by sender** or date range
+- **Auto-indexing** - index automatically rebuilds when new messages are detected
 - **Multiple interfaces** - CLI, MCP server, or Claude Code plugin
 
 ## Requirements
@@ -19,7 +20,25 @@ Fuzzy search and browse Apple Messages (iMessage/SMS) from the command line, as 
 
 ## Installation
 
-### As a Claude Code MCP Server (recommended)
+### Claude Code Plugin (recommended)
+
+Install as a plugin to get skills (auto-invoked) and slash commands:
+
+```bash
+# Add the marketplace
+claude plugin marketplace add https://github.com/cardmagic/messages
+
+# Install the plugin
+claude plugin install messages@cardmagic
+```
+
+This gives you:
+- **Skill**: Claude automatically searches messages when you ask about texts/iMessages
+- **Slash commands**: `/messages:search` and `/messages:browse`
+
+### MCP Server
+
+For direct MCP tool access without the plugin:
 
 ```bash
 claude mcp add --transport stdio messages -- npx -y @cardmagic/messages --mcp
@@ -38,6 +57,11 @@ claude mcp add --transport stdio messages -- messages --mcp
 git clone https://github.com/cardmagic/messages.git
 cd messages
 make install
+
+# Then add as plugin OR MCP server:
+claude plugin marketplace add /Users/you/messages/.claude-plugin/marketplace.json
+claude plugin install messages@cardmagic
+# OR
 claude mcp add --transport stdio messages -- messages --mcp
 ```
 
@@ -65,7 +89,7 @@ messages contacts --limit 10
 # List conversations with message counts
 messages conversations
 
-# Show recent messages from/to someone
+# Show recent messages from someone
 messages from "Mom"
 
 # Show full conversation thread
@@ -75,10 +99,7 @@ messages thread "John" --after 2024-12-01
 #### Search Commands
 
 ```bash
-# Build the search index (required before first search)
-messages index
-
-# Search for messages
+# Search for messages (index auto-builds on first search)
 messages search "coffee tomorrow"
 
 # Filter by sender
@@ -92,6 +113,9 @@ messages search "project" --limit 20 --context 5
 
 # Show index statistics
 messages stats
+
+# Force rebuild the index
+messages index
 ```
 
 #### Search Options
@@ -103,17 +127,34 @@ messages stats
 | `-l, --limit <n>` | Max results (default: 10) |
 | `-c, --context <n>` | Messages before/after (default: 2) |
 
+### Claude Code Plugin
+
+When installed as a plugin, you get:
+
+**Skill** (auto-invoked): Claude automatically searches messages when you ask things like:
+- "What did Mom say about dinner?"
+- "Who texted me recently?"
+- "Find messages about the trip"
+
+**Slash Commands**:
+
+| Command | Description |
+|---------|-------------|
+| `/messages:search <query>` | Fuzzy search with optional filters |
+| `/messages:browse recent` | Show most recent messages |
+| `/messages:browse contacts` | List contacts by activity |
+| `/messages:browse from "Name"` | Messages from/to someone |
+
 ### MCP Server
 
-Once installed with `claude mcp add` (see Installation above), Claude Code can use these tools:
+When installed as an MCP server, Claude Code can use these tools:
 
 | Tool | Description |
 |------|-------------|
-| `search_messages` | Search messages with fuzzy matching |
-| `rebuild_message_index` | Rebuild the search index |
+| `search_messages` | Search messages with fuzzy matching (auto-rebuilds index) |
 | `get_message_stats` | Get index statistics |
 
-#### Manual Configuration
+#### Manual MCP Configuration
 
 For Claude Desktop or VS Code, add to your MCP configuration:
 
@@ -130,10 +171,11 @@ For Claude Desktop or VS Code, add to your MCP configuration:
 
 ## How It Works
 
-1. **Indexing**: Reads your Apple Messages SQLite database and builds:
-   - A SQLite FTS5 full-text search index
-   - A MiniSearch fuzzy search index
-   - Contact name resolution from your Address Book
+1. **Auto-Indexing**: On first search (or when new messages are detected), the tool automatically:
+   - Reads your Apple Messages SQLite database
+   - Builds a SQLite FTS5 full-text search index
+   - Creates a MiniSearch fuzzy search index
+   - Resolves contact names from your Address Book
 
 2. **Searching**: Queries both indexes for best results with typo tolerance
 
@@ -141,17 +183,6 @@ For Claude Desktop or VS Code, add to your MCP configuration:
    - `index.db` - SQLite FTS5 database
    - `fuzzy.json` - MiniSearch index
    - `stats.json` - Index statistics
-
-## Rebuilding the Index
-
-Run `messages index` periodically to include new messages. The index doesn't auto-update.
-
-For automatic daily indexing, add a cron job or launchd plist:
-
-```bash
-# crontab -e
-0 4 * * * /path/to/messages index
-```
 
 ## License
 
