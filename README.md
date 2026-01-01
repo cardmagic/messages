@@ -20,6 +20,18 @@ Fuzzy search and browse Apple Messages (iMessage/SMS) from the command line, as 
 
 ## Installation
 
+### Homebrew
+
+```bash
+brew install cardmagic/tap/messages
+```
+
+### npm
+
+```bash
+npm install -g @cardmagic/messages
+```
+
 ### Claude Code Plugin (recommended)
 
 Install as a plugin to get skills (auto-invoked) and slash commands:
