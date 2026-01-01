@@ -3,3 +3,4 @@ dist/
 .DS_Store
 *.log
 .mcpregistry_*_token
+.claude
