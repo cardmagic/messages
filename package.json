@@ -1,6 +1,6 @@
 {
   "name": "@cardmagic/messages",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "mcpName": "io.github.cardmagic/messages",
   "description": "Fuzzy search and browse Apple Messages/iMessage from CLI or MCP server",
   "license": "MIT",

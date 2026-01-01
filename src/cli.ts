@@ -1,6 +1,10 @@
+import { createRequire } from 'module'
 import { program } from 'commander'
 import chalk from 'chalk'
 import { buildIndex, updateIndex, getStats } from './indexer.js'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json')
 import {
   search,
   closeConnections,
@@ -21,7 +25,7 @@ export function runCli(): void {
   program
     .name('messages')
     .description('Fuzzy search through Apple Messages. Run with --mcp for MCP server mode.')
-    .version('1.0.0')
+    .version(version)
 
   program
     .command('index')
