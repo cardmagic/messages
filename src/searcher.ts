@@ -155,10 +155,10 @@ function searchByText(
 }
 
 export function search(options: SearchOptions): SearchResultWithContext[] {
-  // Auto-rebuild index if source database has changed
-  const wasRebuilt = ensureIndex()
-  if (wasRebuilt) {
-    // Clear caches since index was rebuilt
+  // Auto-update index if source database has changed
+  const updateResult = ensureIndex()
+  if (updateResult !== 'none') {
+    // Clear caches since index was updated
     clearCaches()
   }
 

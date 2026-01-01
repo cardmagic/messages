@@ -62,6 +62,7 @@ export interface IndexStats {
   indexedAt: Date
   oldestMessage: Date
   newestMessage: Date
+  lastIndexedRowid?: number // for incremental updates
 }
 
 // Apple date constants

@@ -1,6 +1,6 @@
 import { program } from 'commander'
 import chalk from 'chalk'
-import { buildIndex, getStats } from './indexer.js'
+import { buildIndex, updateIndex, getStats } from './indexer.js'
 import {
   search,
   closeConnections,
@@ -25,17 +25,19 @@ export function runCli(): void {
 
   program
     .command('index')
-    .description('Force rebuild the search index from Apple Messages')
+    .description('Build or update the search index from Apple Messages')
     .option('-q, --quiet', 'Suppress progress output')
+    .option('-u, --update', 'Incremental update (only index new messages)')
     .action((options) => {
-      console.log(chalk.bold('Rebuilding search index...'))
+      const isIncremental = options.update
+      console.log(chalk.bold(isIncremental ? 'Updating search index...' : 'Rebuilding search index...'))
       console.log(
         chalk.dim('Reading from ~/Library/Messages/chat.db (requires Full Disk Access)')
       )
       console.log()
 
       try {
-        const stats = buildIndex((progress) => {
+        const progressCallback = (progress: { phase: string; current: number; total: number }) => {
           if (!options.quiet) {
             process.stdout.write(
               '\r' + formatIndexProgress(progress.phase, progress.current, progress.total)
@@ -44,10 +46,22 @@ export function runCli(): void {
               console.log()
             }
           }
-        })
+        }
+
+        let stats
+        if (isIncremental) {
+          stats = updateIndex(progressCallback)
+          if (!stats) {
+            console.log(chalk.yellow('No existing index found, performing full rebuild...'))
+            console.log()
+            stats = buildIndex(progressCallback)
+          }
+        } else {
+          stats = buildIndex(progressCallback)
+        }
 
         console.log()
-        console.log(chalk.green('\u2713 Index rebuilt successfully!'))
+        console.log(chalk.green(isIncremental ? '\u2713 Index updated successfully!' : '\u2713 Index rebuilt successfully!'))
         console.log()
         console.log(formatStats(stats))
       } catch (error) {

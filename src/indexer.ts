@@ -274,16 +274,27 @@ export function indexNeedsRebuild(): boolean {
   }
 }
 
-// Ensure index is up to date, rebuilding if necessary
-// Returns true if rebuild was performed
+// Ensure index is up to date, using incremental update when possible
+// Returns 'none' if no update needed, 'incremental' if only new messages added, 'full' if full rebuild
 export function ensureIndex(
   onProgress?: (progress: IndexProgress) => void
-): boolean {
+): 'none' | 'incremental' | 'full' {
   if (!indexNeedsRebuild()) {
-    return false
+    return 'none'
   }
+
+  // Try incremental update first
+  const stats = getStats()
+  if (stats?.lastIndexedRowid && indexExists()) {
+    const result = updateIndex(onProgress)
+    if (result !== null) {
+      return 'incremental'
+    }
+  }
+
+  // Fall back to full rebuild
   buildIndex(onProgress)
-  return true
+  return 'full'
 }
 
 export function getStats(): IndexStats | null {
@@ -588,6 +599,12 @@ export function buildIndex(
   const uniqueChats = new Set(indexedMessages.map((m) => m.chatId))
   const uniqueContacts = new Set(indexedMessages.map((m) => m.sender))
 
+  // Find the highest rowid for incremental updates
+  let lastIndexedRowid = 0
+  for (const m of indexedMessages) {
+    if (m.id > lastIndexedRowid) lastIndexedRowid = m.id
+  }
+
   const stats: IndexStats = {
     totalMessages: indexedMessages.length,
     totalChats: uniqueChats.size,
@@ -595,10 +612,245 @@ export function buildIndex(
     indexedAt: new Date(),
     oldestMessage: new Date(oldestDate * 1000),
     newestMessage: new Date(newestDate * 1000),
+    lastIndexedRowid,
   }
 
   saveStats(stats)
   onProgress?.({ current: total, total, phase: 'done' })
 
   return stats
+}
+
+// Incremental update - only index new messages since last build
+export function updateIndex(
+  onProgress?: (progress: IndexProgress) => void
+): IndexStats | null {
+  const existingStats = getStats()
+  if (!existingStats?.lastIndexedRowid) {
+    // No previous index or no rowid tracked, need full rebuild
+    return null
+  }
+
+  if (!existsSync(MESSAGES_DB_PATH)) {
+    throw new Error(
+      `Messages database not found at ${MESSAGES_DB_PATH}. Make sure you have Full Disk Access enabled for your terminal.`
+    )
+  }
+
+  const messagesDb = new Database(MESSAGES_DB_PATH, { readonly: true })
+  const contactLookup = buildContactLookup()
+
+  const resolveContactName = (identifier: string | null): string | null => {
+    if (!identifier) return null
+    if (identifier.includes('@')) {
+      const name = contactLookup.get(identifier.toLowerCase())
+      return name || identifier
+    }
+    const normalized = normalizePhone(identifier)
+    if (normalized.length >= 7) {
+      let name = contactLookup.get(normalized)
+      if (name) return name
+      if (normalized.length > 10) {
+        name = contactLookup.get(normalized.slice(-10))
+        if (name) return name
+      }
+      name = contactLookup.get(normalized.slice(-7))
+      if (name) return name
+    }
+    return identifier
+  }
+
+  // Query only new messages since last indexed rowid
+  const query = `
+    SELECT
+      m.ROWID as rowid,
+      m.text,
+      m.attributedBody,
+      m.date,
+      m.is_from_me,
+      h.id as sender_id,
+      COALESCE(c.display_name, c.chat_identifier) as chat_name,
+      c.ROWID as chat_id,
+      m.service
+    FROM message m
+    LEFT JOIN handle h ON m.handle_id = h.ROWID
+    LEFT JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
+    LEFT JOIN chat c ON cmj.chat_id = c.ROWID
+    WHERE (m.text IS NOT NULL OR m.attributedBody IS NOT NULL)
+      AND m.ROWID > ?
+    GROUP BY m.ROWID
+    ORDER BY m.date ASC
+  `
+
+  const rawMessages = messagesDb.prepare(query).all(existingStats.lastIndexedRowid) as RawQueryMessage[]
+  messagesDb.close()
+
+  if (rawMessages.length === 0) {
+    // No new messages, update the indexedAt timestamp
+    const updatedStats: IndexStats = {
+      ...existingStats,
+      indexedAt: new Date(),
+    }
+    saveStats(updatedStats)
+    onProgress?.({ current: 0, total: 0, phase: 'done' })
+    return updatedStats
+  }
+
+  // Process new messages
+  const messages = rawMessages
+    .map((msg) => {
+      let text = msg.text
+      if (!text && msg.attributedBody) {
+        text = extractTextFromAttributedBody(msg.attributedBody)
+      }
+      const senderName = resolveContactName(msg.sender_id)
+      let chatName = msg.chat_name
+      if (!chatName || chatName === msg.sender_id) {
+        chatName = senderName
+      } else if (chatName && (chatName.startsWith('+') || chatName.includes('@'))) {
+        chatName = resolveContactName(chatName) || chatName
+      }
+      return {
+        rowid: msg.rowid,
+        text,
+        date: msg.date,
+        is_from_me: msg.is_from_me,
+        sender_id: senderName,
+        chat_name: chatName,
+        chat_id: msg.chat_id,
+        service: msg.service,
+      }
+    })
+    .filter((msg) => msg.text && msg.text.trim().length > 0)
+
+  const total = messages.length
+  onProgress?.({ current: 0, total, phase: 'indexing-fts' })
+
+  // Open existing index database and insert new messages
+  const indexDb = new Database(INDEX_DB_PATH)
+
+  const insertFts = indexDb.prepare(`
+    INSERT INTO messages_fts (id, text, sender, chat_name, chat_id, date, is_from_me)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const insertMessages = indexDb.prepare(`
+    INSERT INTO messages (id, text, sender, chat_name, chat_id, date, is_from_me)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  // Load existing MiniSearch index
+  const fuzzyData = readFileSync(FUZZY_INDEX_PATH, 'utf-8')
+  const miniSearch = MiniSearch.loadJSON<IndexedMessage>(fuzzyData, {
+    fields: ['text', 'sender', 'chatName'],
+    storeFields: ['id', 'text', 'sender', 'chatName', 'chatId', 'date', 'isFromMe'],
+    searchOptions: {
+      boost: { text: 2, sender: 1.5, chatName: 1 },
+      fuzzy: 0.2,
+      prefix: true,
+    },
+  })
+
+  const newMessages: IndexedMessage[] = []
+  let newestDate = existingStats.newestMessage.getTime() / 1000
+  let lastRowid = existingStats.lastIndexedRowid
+
+  type FilteredMessage = {
+    rowid: number
+    text: string | null
+    date: number
+    is_from_me: number
+    sender_id: string | null
+    chat_name: string | null
+    chat_id: number
+    service: string | null
+  }
+
+  const insertBatch = indexDb.transaction(
+    (batch: { indexed: IndexedMessage; raw: FilteredMessage }[]) => {
+      for (const { indexed } of batch) {
+        insertFts.run(
+          indexed.id,
+          indexed.text,
+          indexed.sender,
+          indexed.chatName,
+          indexed.chatId,
+          indexed.date,
+          indexed.isFromMe ? 1 : 0
+        )
+        insertMessages.run(
+          indexed.id,
+          indexed.text,
+          indexed.sender,
+          indexed.chatName,
+          indexed.chatId,
+          indexed.date,
+          indexed.isFromMe ? 1 : 0
+        )
+      }
+    }
+  )
+
+  const BATCH_SIZE = 1000
+  let batch: { indexed: IndexedMessage; raw: FilteredMessage }[] = []
+  let processed = 0
+
+  for (const msg of messages) {
+    const unixDate = appleToUnix(msg.date)
+    if (unixDate > newestDate) newestDate = unixDate
+    if (msg.rowid > lastRowid) lastRowid = msg.rowid
+
+    const indexed: IndexedMessage = {
+      id: msg.rowid,
+      text: msg.text ?? '',
+      sender: msg.sender_id ?? 'Unknown',
+      chatName: msg.chat_name ?? 'Unknown',
+      chatId: msg.chat_id ?? 0,
+      date: unixDate,
+      isFromMe: msg.is_from_me === 1,
+    }
+
+    batch.push({ indexed, raw: msg })
+    newMessages.push(indexed)
+
+    if (batch.length >= BATCH_SIZE) {
+      insertBatch(batch)
+      batch = []
+      processed += BATCH_SIZE
+      onProgress?.({ current: processed, total, phase: 'indexing-fts' })
+    }
+  }
+
+  if (batch.length > 0) {
+    insertBatch(batch)
+    processed += batch.length
+    onProgress?.({ current: processed, total, phase: 'indexing-fts' })
+  }
+
+  indexDb.close()
+
+  // Add new messages to MiniSearch
+  onProgress?.({ current: 0, total: newMessages.length, phase: 'indexing-fuzzy' })
+  miniSearch.addAll(newMessages)
+  onProgress?.({ current: newMessages.length, total: newMessages.length, phase: 'indexing-fuzzy' })
+
+  // Save updated fuzzy index
+  const serialized = JSON.stringify(miniSearch.toJSON())
+  writeFileSync(FUZZY_INDEX_PATH, serialized)
+
+  // Update stats
+  const updatedStats: IndexStats = {
+    totalMessages: existingStats.totalMessages + newMessages.length,
+    totalChats: existingStats.totalChats, // Could recalculate but expensive
+    totalContacts: existingStats.totalContacts,
+    indexedAt: new Date(),
+    oldestMessage: existingStats.oldestMessage,
+    newestMessage: new Date(newestDate * 1000),
+    lastIndexedRowid: lastRowid,
+  }
+
+  saveStats(updatedStats)
+  onProgress?.({ current: total, total, phase: 'done' })
+
+  return updatedStats
 }
