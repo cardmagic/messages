@@ -18,8 +18,8 @@ importers:
         specifier: 5.6.2
         version: 5.6.2
       commander:
-        specifier: 14.0.2
-        version: 14.0.2
+        specifier: 14.0.3
+        version: 14.0.3
       minisearch:
         specifier: 7.2.0
         version: 7.2.0
@@ -502,8 +502,8 @@ packages:
   chownr@1.1.4:
     resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
 
-  commander@14.0.2:
-    resolution: {integrity: sha512-TywoWNNRbhoD0BXs1P3ZEScW8W5iKrnbithIl0YH+uCmBd0QpPOA8yc82DS3BIE5Ma6FnBVUsJ7wVUDz4dvOWQ==}
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
 
   content-disposition@1.0.1:
@@ -1455,7 +1455,7 @@ snapshots:
 
   chownr@1.1.4: {}
 
-  commander@14.0.2: {}
+  commander@14.0.3: {}
 
   content-disposition@1.0.1: {}
 
