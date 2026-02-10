@@ -8,7 +8,7 @@ import type { IndexedMessage, IndexStats } from './types.js'
 import { appleToUnix } from './types.js'
 
 // Normalize phone number for matching (remove all non-digit characters except +)
-function normalizePhone(phone: string): string {
+export function normalizePhone(phone: string): string {
   // Keep only digits and leading +
   const cleaned = phone.replace(/[^\d+]/g, '')
   // Remove leading + and country code 1 for US numbers for matching
@@ -140,7 +140,7 @@ interface RawQueryMessage {
 }
 
 // Extract plain text from NSAttributedString blob using node-typedstream
-function extractTextFromAttributedBody(blob: Buffer): string | null {
+export function extractTextFromAttributedBody(blob: Buffer): string | null {
   if (!blob || blob.length === 0) return null
 
   try {
@@ -191,7 +191,7 @@ function extractTextFromAttributedBody(blob: Buffer): string | null {
 }
 
 // Fallback text extraction using pattern matching
-function extractTextFallback(blob: Buffer): string | null {
+export function extractTextFallback(blob: Buffer): string | null {
   try {
     const blobStr = blob.toString('latin1')
 
