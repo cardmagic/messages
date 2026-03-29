@@ -59,7 +59,7 @@
     "@types/node": "^25",
     "@vitest/coverage-v8": "^4.0.18",
     "oxlint": "^1.36.0",
-    "typescript": "^5.7.0",
+    "typescript": "^6.0.2",
     "vitest": "^4.0.16"
   }
 }
