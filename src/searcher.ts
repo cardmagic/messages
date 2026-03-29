@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3'
 import MiniSearch from 'minisearch'
 import { existsSync, readFileSync } from 'node:fs'
 import { getIndexDbPath, getFuzzyIndexPath, ensureIndex } from './indexer.js'
+import { getSqliteConstructor } from './sqlite.js'
 import type {
   IndexedMessage,
   SearchResult,
@@ -9,15 +9,19 @@ import type {
   SearchOptions,
 } from './types.js'
 
-let cachedDb: ReturnType<typeof Database> | null = null
+type SqliteConstructor = ReturnType<typeof getSqliteConstructor>
+type SqliteDatabase = InstanceType<SqliteConstructor>
+
+let cachedDb: SqliteDatabase | null = null
 let cachedMiniSearch: MiniSearch<IndexedMessage> | null = null
 
-function getDb(): ReturnType<typeof Database> {
+function getDb(): SqliteDatabase {
   if (!cachedDb) {
     const dbPath = getIndexDbPath()
     if (!existsSync(dbPath)) {
       throw new Error('Index not found. Run `txts index` first.')
     }
+    const Database = getSqliteConstructor()
     cachedDb = new Database(dbPath, { readonly: true })
   }
   return cachedDb
@@ -61,7 +65,7 @@ function rowToMessage(row: unknown): IndexedMessage {
 
 // Search by sender using SQLite (for "from X" queries without text search)
 function searchBySender(
-  db: ReturnType<typeof Database>,
+  db: SqliteDatabase,
   from: string,
   after: Date | undefined,
   limit: number

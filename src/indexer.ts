@@ -1,11 +1,20 @@
-import Database from 'better-sqlite3'
 import MiniSearch from 'minisearch'
 import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, readdirSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { Unarchiver } from 'node-typedstream'
+import { getSqliteConstructor } from './sqlite.js'
 import type { IndexedMessage, IndexStats } from './types.js'
 import { appleToUnix } from './types.js'
+
+type SqliteConstructor = ReturnType<typeof getSqliteConstructor>
+type SqliteDatabase = InstanceType<SqliteConstructor>
+type SqliteOptions = ConstructorParameters<SqliteConstructor>[1]
+
+function createDatabase(path: string | Buffer, options?: SqliteOptions): SqliteDatabase {
+  const Database = getSqliteConstructor()
+  return new Database(path, options)
+}
 
 // Normalize phone number for matching (remove all non-digit characters except +)
 export function normalizePhone(phone: string): string {
@@ -46,8 +55,8 @@ function buildContactLookup(): Map<string, string> {
   // Sort by contact count (most contacts first) so the primary/largest DB wins
   sources.sort((a, b) => {
     try {
-      const dbA = new Database(a, { readonly: true })
-      const dbB = new Database(b, { readonly: true })
+      const dbA = createDatabase(a, { readonly: true })
+      const dbB = createDatabase(b, { readonly: true })
       const countA = (dbA.prepare('SELECT COUNT(*) as c FROM ZABCDRECORD').get() as { c: number }).c
       const countB = (dbB.prepare('SELECT COUNT(*) as c FROM ZABCDRECORD').get() as { c: number }).c
       dbA.close()
@@ -60,7 +69,7 @@ function buildContactLookup(): Map<string, string> {
 
   for (const dbPath of sources) {
     try {
-      const db = new Database(dbPath, { readonly: true })
+      const db = createDatabase(dbPath, { readonly: true })
 
       // Get phone numbers with contact names
       const phoneQuery = `
@@ -333,7 +342,7 @@ export function buildIndex(
     )
   }
 
-  const messagesDb = new Database(MESSAGES_DB_PATH, { readonly: true })
+  const messagesDb = createDatabase(MESSAGES_DB_PATH, { readonly: true })
 
   // Build contact lookup from AddressBook
   const contactLookup = buildContactLookup()
@@ -440,7 +449,7 @@ export function buildIndex(
     unlinkSync(INDEX_DB_PATH)
   }
 
-  const indexDb = new Database(INDEX_DB_PATH)
+  const indexDb = createDatabase(INDEX_DB_PATH)
 
   // Create FTS5 virtual table
   indexDb.exec(`
@@ -637,7 +646,7 @@ export function updateIndex(
     )
   }
 
-  const messagesDb = new Database(MESSAGES_DB_PATH, { readonly: true })
+  const messagesDb = createDatabase(MESSAGES_DB_PATH, { readonly: true })
   const contactLookup = buildContactLookup()
 
   const resolveContactName = (identifier: string | null): string | null => {
@@ -727,7 +736,7 @@ export function updateIndex(
   onProgress?.({ current: 0, total, phase: 'indexing-fts' })
 
   // Open existing index database and insert new messages
-  const indexDb = new Database(INDEX_DB_PATH)
+  const indexDb = createDatabase(INDEX_DB_PATH)
 
   const insertFts = indexDb.prepare(`
     INSERT INTO messages_fts (id, text, sender, chat_name, chat_id, date, is_from_me)
