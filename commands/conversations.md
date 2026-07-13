@@ -1,7 +1,7 @@
 ---
 description: List conversations with message counts
 allowed-tools: Bash(messages:*)
-argument-hint: [--limit N]
+argument-hint: "[--limit N]"
 ---
 
 # Conversations

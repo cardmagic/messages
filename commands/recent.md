@@ -1,7 +1,7 @@
 ---
 description: Show most recent messages (who texted me?)
 allowed-tools: Bash(messages:*)
-argument-hint: [--limit N]
+argument-hint: "[--limit N]"
 ---
 
 # Recent Messages
