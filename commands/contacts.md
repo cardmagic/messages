@@ -1,7 +1,7 @@
 ---
 description: List contacts by recent messaging activity
 allowed-tools: Bash(messages:*)
-argument-hint: [--limit N]
+argument-hint: "[--limit N]"
 ---
 
 # Contacts
