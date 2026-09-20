@@ -12,7 +12,7 @@ importers:
         specifier: ^1.0.0
         version: 1.30.0(supports-color@7.2.0)(zod@4.3.3)
       better-sqlite3:
-        specifier: 13.0.3
+        specifier: ^13.0.3
         version: 13.0.3
       chalk:
         specifier: 6.0.0
